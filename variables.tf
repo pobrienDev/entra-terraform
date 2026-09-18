@@ -71,6 +71,12 @@ variable "github_repository" {
   default     = "pobrienDev/entra-terraform"
 }
 
+variable "github_oidc_subject_prefix" {
+  description = "Prefix of the OIDC `sub` claim GitHub issues for this repo. Read it with: gh api repos/OWNER/REPO/actions/oidc/customization/sub --jq .sub_claim_prefix"
+  type        = string
+  default     = "repo:pobrienDev@24906399/entra-terraform@1376480422"
+}
+
 variable "state_storage_account_name" {
   description = "Storage account created by ./bootstrap. Not committed — set in terraform.tfvars."
   type        = string

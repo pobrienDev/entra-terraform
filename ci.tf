@@ -26,12 +26,17 @@ resource "azuread_service_principal" "ci" {
 }
 
 # The `subject` must match the token's `sub` claim exactly — one character off
-# and login fails with AADSTS70021. A token is only issued for workflows in
+# and login fails with AADSTS700213. A token is only issued for workflows in
 # this repository, and GitHub never issues one to pull requests from forks.
+#
+# This repo uses GitHub's immutable subject format, which embeds the numeric
+# owner and repo IDs (repo:owner@123/name@456). Names can be re-registered by
+# someone else after a rename or deletion; IDs can't, so trust can't be
+# inherited by a look-alike repo.
 locals {
   ci_subjects = {
-    pull-request = "repo:${var.github_repository}:pull_request"
-    main-branch  = "repo:${var.github_repository}:ref:refs/heads/main"
+    pull-request = "${var.github_oidc_subject_prefix}:pull_request"
+    main-branch  = "${var.github_oidc_subject_prefix}:ref:refs/heads/main"
   }
 }
 
