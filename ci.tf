@@ -90,11 +90,12 @@ resource "azurerm_role_assignment" "ci_state_reader" {
   principal_id         = azuread_service_principal.ci.object_id
 }
 
-# "Data Reader" covers blob contents only. Plain Reader on the same container
-# lets CI refresh these two role assignments themselves, which live outside
-# the workload resource group — scoped to the container, not the whole group.
-resource "azurerm_role_assignment" "ci_state_container_reader" {
-  scope                = "${data.azurerm_storage_account.tfstate.id}/blobServices/default/containers/tfstate"
+# "Data Reader" covers blob contents only. Plain Reader on the storage account
+# lets CI resolve the data source above and refresh these two role assignments,
+# which live outside the workload resource group. Management-plane read only;
+# with account keys disabled there is nothing here that unlocks the data.
+resource "azurerm_role_assignment" "ci_state_account_reader" {
+  scope                = data.azurerm_storage_account.tfstate.id
   role_definition_name = "Reader"
   principal_id         = azuread_service_principal.ci.object_id
 }
