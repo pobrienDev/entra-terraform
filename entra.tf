@@ -13,6 +13,12 @@ data "azuread_service_principal" "msgraph" {
 }
 
 locals {
+  # The human admin who owns the app registrations and can manage secrets.
+  # Defaults to whoever runs Terraform, but CI pins it explicitly: otherwise
+  # the config means something different depending on who runs it, and CI's
+  # plan would propose making itself the owner of everything.
+  admin_object_id = coalesce(var.admin_object_id, data.azuread_client_config.current.object_id)
+
   graph_app_roles = toset(concat(
     var.graph_app_roles,
     var.enable_credential_reset ? var.credential_reset_app_roles : [],
@@ -22,7 +28,7 @@ locals {
 resource "azuread_application" "automation" {
   display_name     = "${var.name_prefix}-graph-automation"
   sign_in_audience = "AzureADMyOrg"
-  owners           = [data.azuread_client_config.current.object_id]
+  owners           = [local.admin_object_id]
 
   # Declares which permissions the app *requests*. Declaring is not granting —
   # see azuread_app_role_assignment below.
@@ -42,7 +48,7 @@ resource "azuread_application" "automation" {
 
 resource "azuread_service_principal" "automation" {
   client_id = azuread_application.automation.client_id
-  owners    = [data.azuread_client_config.current.object_id]
+  owners    = [local.admin_object_id]
 }
 
 # The code equivalent of clicking "Grant admin consent" in the portal: one

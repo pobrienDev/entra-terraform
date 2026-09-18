@@ -87,3 +87,9 @@ variable "state_resource_group_name" {
   type        = string
   default     = "rg-entra-iac-tfstate"
 }
+
+variable "admin_object_id" {
+  description = "Object ID of the admin user who owns the app registrations and gets Key Vault secret access. Null means the identity running Terraform; CI must set it."
+  type        = string
+  default     = null
+}

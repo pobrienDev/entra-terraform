@@ -8,7 +8,7 @@
 resource "azuread_application" "ci" {
   display_name     = "${var.name_prefix}-github-plan"
   sign_in_audience = "AzureADMyOrg"
-  owners           = [data.azuread_client_config.current.object_id]
+  owners           = [local.admin_object_id]
 
   required_resource_access {
     resource_app_id = data.azuread_service_principal.msgraph.client_id
@@ -22,7 +22,7 @@ resource "azuread_application" "ci" {
 
 resource "azuread_service_principal" "ci" {
   client_id = azuread_application.ci.client_id
-  owners    = [data.azuread_client_config.current.object_id]
+  owners    = [local.admin_object_id]
 }
 
 # The `subject` must match the token's `sub` claim exactly — one character off
