@@ -2,9 +2,8 @@
 
 [![terraform plan](https://github.com/pobrienDev/entra-terraform/actions/workflows/plan.yml/badge.svg)](https://github.com/pobrienDev/entra-terraform/actions/workflows/plan.yml)
 
-Terraform for the Microsoft Entra ID and Azure infrastructure that my Graph API
-automation tools authenticate against — as versioned, reviewable code instead
-of portal clicks.
+The Microsoft Entra ID and Azure infrastructure my Graph API automation tools
+depend on, as versioned, reviewable Terraform instead of portal clicks.
 
 My two Python CLIs, [employee-provisioning-tool](https://github.com/pobrienDev/employee-provisioning-tool)
 and [entra-stale-accounts](https://github.com/pobrienDev/entra-stale-accounts),
@@ -33,6 +32,17 @@ Scope is fixed at five things, deliberately:
 Plus the CI identity that plans all of the above on every pull request, with
 no stored credentials — `ci.tf`, `.github/workflows/plan.yml`.
 
+```
+.
+├── main.tf, entra.tf, keyvault.tf   the five resources
+├── ci.tf                            read-only identity for GitHub Actions (OIDC)
+├── backend.tf                       remote state (partial config, no names committed)
+├── bootstrap/                       one-time config that creates the state storage
+├── docs/                            bootstrap explanation, drift-detection output
+├── .github/workflows/plan.yml       terraform plan on every PR
+└── .githooks/pre-commit             blocks IDs, secrets and state from being committed
+```
+
 ## Design decisions
 
 **Permissions come from the code that uses them.** The Graph permissions aren't
@@ -51,9 +61,9 @@ name from Microsoft Graph's service principal, so the config reads
 
 **Key Vault keeps the secret out of code — not out of state.** Terraform
 generates the client secret, so the value is recorded in Terraform state in
-plaintext. That's unavoidable with this approach and worth being honest about:
-Key Vault solves "secret in a `.env` file", and the state backend has to solve
-the rest. Hence:
+plaintext. That's unavoidable with this approach, and worth saying plainly:
+Key Vault solves "secret in a `.env` file"; the state backend has to solve the
+rest. Which is why:
 
 **State storage is locked down like the credential store it is.** Account keys
 disabled (Entra ID auth only), no anonymous access, TLS 1.2+, a data-plane role
@@ -135,8 +145,7 @@ GitHub never issues one to pull requests from forks.
 
 ### Three things CI taught me
 
-Getting the first green run took three fixes, each more interesting than the
-last.
+Getting to the first green run took three fixes.
 
 **1. `AADSTS700213: No matching federated identity record`.** The credential's
 subject was `repo:owner/name:ref:refs/heads/main`, but the token's `sub` claim
@@ -148,8 +157,8 @@ inherit the cloud trust, while an ID can't be.
 
 **2. `403` reading the storage account.** I'd scoped CI's `Reader` role to the
 state *container*, but a data source in the config reads the storage *account*.
-Least privilege is a good default until it's one level too narrow; the fix was
-moving one role assignment up one scope.
+The fix was moving one role assignment up one scope — still read-only, and
+with account keys disabled there's nothing at that level that unlocks the data.
 
 **3. CI's plan disagreed with mine.** Same code, same state — locally "No
 changes", in CI "4 to change, 1 to replace". The config set each resource's
@@ -157,8 +166,8 @@ changes", in CI "4 to change, 1 to replace". The config set each resource's
 CI identity, so CI's plan proposed making itself the owner of everything.
 Infrastructure code shouldn't mean different things depending on who runs it.
 The owner is now an explicit input (`admin_object_id`), and CI's plan matches
-mine. This is the one I'd have been least likely to find without a second
-identity running the same code.
+mine. I wouldn't have found this one without a second identity running the
+same code — which is a good argument for CI on infrastructure repos by itself.
 
 ## Evidence it runs
 
@@ -210,21 +219,34 @@ No changes. Your infrastructure matches the configuration.
 Prerequisites: Terraform ≥ 1.9, Azure CLI, and a tenant where you can grant
 admin consent.
 
-```bash
-az login --tenant <your-tenant-id>
-git config core.hooksPath .githooks            # enable the leak guard
+1. Sign in, enable the leak guard, and create your variables file:
 
-cp terraform.tfvars.example terraform.tfvars   # fill in tenant + subscription
+   ```bash
+   az login --tenant <your-tenant-id>
+   git config core.hooksPath .githooks
+   cp terraform.tfvars.example terraform.tfvars   # fill in tenant + subscription IDs
+   ```
 
-# One-time: create the state storage, then point the root config at it
-cd bootstrap && terraform init && terraform apply -var-file=../terraform.tfvars
-terraform output -raw backend_config > ../backend.tfbackend && cd ..
-# add state_storage_account_name to terraform.tfvars, then:
-terraform init -backend-config=backend.tfbackend
+2. One time only, create the state storage and write the backend file:
 
-terraform plan
-terraform apply
-```
+   ```bash
+   cd bootstrap
+   terraform init
+   terraform apply -var-file=../terraform.tfvars
+   terraform output -raw backend_config > ../backend.tfbackend
+   cd ..
+   ```
+
+3. Copy the `storage_account_name` from `backend.tfbackend` into
+   `terraform.tfvars` as `state_storage_account_name`.
+
+4. Initialize against the remote backend and apply:
+
+   ```bash
+   terraform init -backend-config=backend.tfbackend
+   terraform plan
+   terraform apply
+   ```
 
 For CI, set the `github_oidc_subject_prefix` variable to your repo's value
 (`gh api repos/OWNER/REPO/actions/oidc/customization/sub --jq .sub_claim_prefix`)
