@@ -32,3 +32,29 @@ variable "name_prefix" {
   type        = string
   default     = "entra-iac"
 }
+
+variable "graph_app_roles" {
+  description = "Microsoft Graph application permissions the automation needs for its core job."
+  type        = list(string)
+  default = [
+    "User.ReadWrite.All",    # create / update / disable accounts
+    "Group.ReadWrite.All",   # group membership
+    "AuditLog.Read.All",     # signInActivity, for stale-account detection
+    "Organization.Read.All", # subscribedSkus, for license seat counts
+  ]
+}
+
+variable "enable_credential_reset" {
+  description = "Also grant the permissions that let the app reset passwords and remove MFA methods. Off by default: a leaked secret with these can take over any account."
+  type        = bool
+  default     = false
+}
+
+variable "credential_reset_app_roles" {
+  description = "Granted only when enable_credential_reset is true."
+  type        = list(string)
+  default = [
+    "User-PasswordProfile.ReadWrite.All",
+    "UserAuthenticationMethod.ReadWrite.All",
+  ]
+}
