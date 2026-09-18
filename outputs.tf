@@ -24,3 +24,8 @@ output "client_secret_name" {
 output "client_secret_expires" {
   value = time_rotating.client_secret.rotation_rfc3339
 }
+
+output "ci_client_id" {
+  description = "Client ID for the GitHub Actions identity (set as the AZURE_CLIENT_ID secret)."
+  value       = azuread_application.ci.client_id
+}

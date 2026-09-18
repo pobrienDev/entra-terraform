@@ -64,3 +64,20 @@ variable "client_secret_rotation_days" {
   type        = number
   default     = 180
 }
+
+variable "github_repository" {
+  description = "owner/name of the GitHub repository allowed to run plan via OIDC."
+  type        = string
+  default     = "pobrienDev/entra-terraform"
+}
+
+variable "state_storage_account_name" {
+  description = "Storage account created by ./bootstrap. Not committed — set in terraform.tfvars."
+  type        = string
+}
+
+variable "state_resource_group_name" {
+  description = "Resource group created by ./bootstrap."
+  type        = string
+  default     = "rg-entra-iac-tfstate"
+}

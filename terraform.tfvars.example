@@ -4,3 +4,6 @@
 
 tenant_id       = "00000000-0000-0000-0000-000000000000"
 subscription_id = "00000000-0000-0000-0000-000000000000"
+
+# From ./bootstrap:  terraform -chdir=bootstrap output backend_config
+state_storage_account_name = "sttfstatexxxxxxxx"

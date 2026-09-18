@@ -1,0 +1,108 @@
+name: terraform plan
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# id-token lets the job request a GitHub OIDC token, which Entra ID exchanges
+# for an access token via the federated credential in ci.tf. No Azure secret
+# is stored in this repository.
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: plan-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARM_USE_OIDC: "true"
+  ARM_USE_AZUREAD: "true"
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  # The CI identity is read-only and can't register resource providers.
+  ARM_RESOURCE_PROVIDER_REGISTRATIONS: none
+  TF_VAR_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+  TF_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  TF_VAR_state_storage_account_name: ${{ secrets.TFSTATE_STORAGE_ACCOUNT }}
+  TF_IN_AUTOMATION: "true"
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    # Fork PRs get no OIDC token and no secrets, so the job could only fail.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.3"
+          terraform_wrapper: false
+
+      - name: Format
+        run: terraform fmt -check -recursive
+
+      - name: Init
+        run: |
+          terraform init -input=false \
+            -backend-config="storage_account_name=${{ secrets.TFSTATE_STORAGE_ACCOUNT }}" \
+            -backend-config="container_name=tfstate" \
+            -backend-config="key=entra-terraform.tfstate" \
+            -backend-config="use_azuread_auth=true" \
+            -backend-config="use_oidc=true"
+
+      - name: Validate
+        run: terraform validate
+
+      # This repository is public, so its logs are too. Raw plan output holds
+      # tenant, subscription and object IDs; it goes to a file, never stdout,
+      # and only a redacted copy is ever printed. GitHub also masks the secret
+      # values above, including TENANT_NAME, as a second layer.
+      - name: Plan
+        id: plan
+        env:
+          TENANT_NAME: ${{ secrets.TENANT_NAME }}
+        run: |
+          code=0
+          # -lock=false: the CI identity can read state but not write a lease.
+          terraform plan -input=false -no-color -lock=false -detailed-exitcode > plan.raw 2>&1 || code=$?
+
+          grep -vE 'Refreshing state|Reading\.\.\.|Read complete|Still reading' plan.raw \
+            | sed -E \
+              -e 's/[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}/<guid>/g' \
+              -e 's/[A-Za-z0-9-]+\.onmicrosoft\.com/<tenant-domain>/g' \
+              -e 's/kv-[a-z0-9-]+/<key-vault>/g' \
+              -e 's/sttfstate[a-z0-9]+/<state-storage>/g' \
+              -e 's#https://[A-Za-z0-9./_-]+#<url>#g' \
+            > plan.txt
+          rm -f plan.raw
+
+          cat plan.txt
+          {
+            echo '### terraform plan'
+            echo '```'
+            cat plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "exitcode=$code" >> "$GITHUB_OUTPUT"
+          # 0 = no changes, 2 = changes pending. Only 1 is a real failure.
+          [ "$code" -ne 1 ]
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo '#### `terraform plan` (IDs redacted)'
+            echo '```'
+            tail -c 60000 plan.txt
+            echo '```'
+          } > comment.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md --edit-last \
+            || gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md
