@@ -1,0 +1,26 @@
+# Drift detection: resource group deleted by hand in the Azure portal,
+# then `terraform plan` run with no code changes. IDs redacted.
+
+$ terraform plan
+azuread_application.automation: Refreshing state... [id=/applications/<redacted>]
+azuread_service_principal.automation: Refreshing state... [id=/servicePrincipals/<redacted>]
+azuread_app_role_assignment.graph["Group.ReadWrite.All"]: Refreshing state... [id=<redacted>]
+azuread_app_role_assignment.graph["Organization.Read.All"]: Refreshing state... [id=<redacted>]
+azuread_app_role_assignment.graph["AuditLog.Read.All"]: Refreshing state... [id=<redacted>]
+azuread_app_role_assignment.graph["User.ReadWrite.All"]: Refreshing state... [id=<redacted>]
+azurerm_resource_group.main: Refreshing state... [id=/subscriptions/<redacted>/resourceGroups/rg-entra-iac]
+
+Terraform will perform the following actions:
+
+  # azurerm_resource_group.main will be created
+  + resource "azurerm_resource_group" "main" {
+      + id       = (known after apply)
+      + location = "westus2"
+      + name     = "rg-entra-iac"
+      + tags     = {
+          + "managed_by" = "terraform"
+          + "project"    = "entra-terraform"
+        }
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
