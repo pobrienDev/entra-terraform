@@ -1,0 +1,49 @@
+# Terraform working directory (provider binaries, cached modules)
+**/.terraform/*
+
+# State — contains every attribute of every resource in plaintext,
+# including the generated client secret. Never commit.
+*.tfstate
+*.tfstate.*
+
+# Variable files — hold tenant/subscription IDs. Only the .example is tracked.
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# Backend config — holds the state storage account name
+*.tfbackend
+!*.tfbackend.example
+
+# Saved plans are binary and embed variable values + secrets
+*.tfplan
+tfplan
+plan.out
+
+# Override files are local-only by convention
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# CLI config and crash logs (crash logs can dump variable values)
+.terraformrc
+terraform.rc
+crash.log
+crash.*.log
+
+# Credentials / env files
+.env
+.env.*
+*.pem
+*.pfx
+*.key
+.azure/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# NOTE: .terraform.lock.hcl is intentionally NOT ignored — commit it.

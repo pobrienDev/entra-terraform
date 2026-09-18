@@ -1,0 +1,3 @@
+# Public, well-known GUIDs that are safe to commit (identical in every tenant).
+# Format: <guid>  <what it is>
+00000003-0000-0000-c000-000000000000  Microsoft Graph application ID

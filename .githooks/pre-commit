@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Blocks commits that would leak state, variable values, secrets, or real IDs.
+# Enable once per clone:  git config core.hooksPath .githooks
+#
+# Optional private denylist (never tracked): .git/info/leak-denylist
+# One case-insensitive pattern per line — e.g. an employer name or domain.
+
+set -euo pipefail
+
+fail=0
+report() { echo "pre-commit: BLOCKED — $1" >&2; fail=1; }
+
+files=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$files" ] && exit 0
+
+# 1. File types that must never be committed, even with `git add -f`
+while IFS= read -r f; do
+  case "$f" in
+    *.tfvars.example|*.tfbackend.example) ;;
+    *.tfstate|*.tfstate.*|*.tfvars|*.tfvars.json|*.tfbackend|*.tfplan|*.pem|*.pfx|*.key|.env|.env.*|crash.log)
+      report "$f is a state/vars/credential file" ;;
+  esac
+done <<< "$files"
+
+# Only inspect added lines; the hook itself is exempt from content checks
+added=$(git diff --cached -U0 --diff-filter=ACMR -- . ':!.githooks/pre-commit' | grep '^+' | grep -v '^+++' || true)
+
+# 2. Real GUIDs (tenant, subscription, client, object IDs). All-zero placeholder is allowed.
+guids=$(echo "$added" | grep -oiE '[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}' | grep -v '^00000000-0000-0000-0000-000000000000$' || true)
+# Well-known public IDs (Microsoft Graph app + its permission IDs) go in .githooks/guid-allowlist
+if [ -n "$guids" ] && [ -f .githooks/guid-allowlist ]; then
+  guids=$(echo "$guids" | grep -viFf <(grep -v '^#' .githooks/guid-allowlist | awk '{print $1}' | grep .) || true)
+fi
+[ -n "$guids" ] && report "GUID(s) in staged changes — use a variable, or allowlist if public: $(echo $guids)"
+
+# 3. Secret-shaped strings
+echo "$added" | grep -qE -- '-----BEGIN [A-Z ]*PRIVATE KEY-----' && report "private key material"
+echo "$added" | grep -qiE '(client_secret|password|secret_value|access_key|sas_token)[[:space:]]*=[[:space:]]*"[^"$]{8,}"' && report "hardcoded secret-like assignment"
+echo "$added" | grep -qE '[A-Za-z0-9_~.-]{3}8Q~[A-Za-z0-9_~.-]{31,}' && report "string shaped like an Entra client secret"
+echo "$added" | grep -qiE '[a-z0-9-]+\.onmicrosoft\.com' && report "tenant domain (*.onmicrosoft.com)"
+
+# 4. Private denylist
+if [ -f .git/info/leak-denylist ]; then
+  while IFS= read -r pat; do
+    [ -z "$pat" ] && continue
+    echo "$added" | grep -qiF -- "$pat" && report "matches a private denylist entry"
+  done < .git/info/leak-denylist
+fi
+
+[ "$fail" -eq 0 ] || { echo "pre-commit: fix the above, or bypass deliberately with --no-verify." >&2; exit 1; }
