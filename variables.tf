@@ -58,3 +58,9 @@ variable "credential_reset_app_roles" {
     "UserAuthenticationMethod.ReadWrite.All",
   ]
 }
+
+variable "client_secret_rotation_days" {
+  description = "Lifetime of the app's client secret. After this, the next apply rotates it."
+  type        = number
+  default     = 180
+}
