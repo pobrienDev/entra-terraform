@@ -39,11 +39,20 @@ read-only Graph permissions, a federated credential scoped to that repo's
 `monitor` environment, and no client secret — `credmon.tf`. It was built in the
 portal first and then imported, so its client ID never changed.
 
+And two for [entra-conditional-access](https://github.com/pobrienDev/entra-conditional-access),
+which manages the tenant's Conditional Access policies as code: `ca-plan`
+(read-only, trusted from pull requests and `main` for daily drift checks) and
+`ca-apply` (holds `Policy.ReadWrite.ConditionalAccess`, trusted only from that
+repo's approval-gated `production` environment). Splitting them means the one
+permission that can rewrite the tenant's front door is unreachable without a
+human approving the deployment — `ca.tf`.
+
 ```
 .
 ├── main.tf, entra.tf, keyvault.tf   the five resources
 ├── ci.tf                            read-only identity for GitHub Actions (OIDC)
 ├── credmon.tf                       read-only identity for entra-credential-monitor (OIDC)
+├── ca.tf                            plan (read) and apply (write) identities for entra-conditional-access (OIDC)
 ├── backend.tf                       remote state (partial config, no names committed)
 ├── bootstrap/                       one-time config that creates the state storage
 ├── docs/                            bootstrap explanation, drift-detection output
