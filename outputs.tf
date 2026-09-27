@@ -34,3 +34,13 @@ output "credmon_client_id" {
   description = "Client ID for the credential monitor's GitHub Actions identity (its AZURE_CLIENT_ID repository variable)."
   value       = azuread_application.credmon.client_id
 }
+
+output "ca_plan_client_id" {
+  description = "Client ID for entra-conditional-access's read-only plan/drift identity (its CA_PLAN_CLIENT_ID secret)."
+  value       = azuread_application.ca["plan"].client_id
+}
+
+output "ca_apply_client_id" {
+  description = "Client ID for entra-conditional-access's apply identity (its CA_APPLY_CLIENT_ID secret, used only in the production environment)."
+  value       = azuread_application.ca["apply"].client_id
+}

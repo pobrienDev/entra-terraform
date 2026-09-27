@@ -110,3 +110,36 @@ variable "credmon_github_oidc_subject" {
   type        = string
   default     = "repo:pobrienDev@24906399/entra-credential-monitor@1387972681:environment:monitor"
 }
+
+# --- ca-plan / ca-apply (ca.tf) ----------------------------------------------
+
+variable "ca_github_repository" {
+  description = "owner/name of the Conditional Access repository allowed to authenticate as ca-plan and ca-apply."
+  type        = string
+  default     = "pobrienDev/entra-conditional-access"
+}
+
+variable "ca_github_oidc_subject_prefix" {
+  description = "Prefix of the OIDC `sub` claim GitHub issues for the CA repo. Read it with: gh api repos/OWNER/REPO/actions/oidc/customization/sub --jq .sub_claim_prefix"
+  type        = string
+  default     = "repo:pobrienDev@24906399/entra-conditional-access@1391370842"
+}
+
+variable "ca_plan_graph_app_roles" {
+  description = "Microsoft Graph application permissions for ca-plan. All read-only."
+  type        = list(string)
+  default = [
+    "Policy.Read.All", # read Conditional Access policies and named locations
+    "Group.Read.All",  # resolve the break-glass group data source, including its members
+  ]
+}
+
+variable "ca_apply_graph_app_roles" {
+  description = "Microsoft Graph application permissions for ca-apply. Adds the one write permission."
+  type        = list(string)
+  default = [
+    "Policy.Read.All",
+    "Policy.ReadWrite.ConditionalAccess", # create and update policies and named locations
+    "Group.Read.All",
+  ]
+}
