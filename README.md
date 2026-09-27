@@ -32,10 +32,18 @@ Scope is fixed at five things, deliberately:
 Plus the CI identity that plans all of the above on every pull request, with
 no stored credentials — `ci.tf`, `.github/workflows/plan.yml`.
 
+And one identity for a sibling project: `credmon-reader`, the read-only app
+that [entra-credential-monitor](https://github.com/pobrienDev/entra-credential-monitor)
+uses to scan the tenant daily for expiring secrets and certificates. It has two
+read-only Graph permissions, a federated credential scoped to that repo's
+`monitor` environment, and no client secret — `credmon.tf`. It was built in the
+portal first and then imported, so its client ID never changed.
+
 ```
 .
 ├── main.tf, entra.tf, keyvault.tf   the five resources
 ├── ci.tf                            read-only identity for GitHub Actions (OIDC)
+├── credmon.tf                       read-only identity for entra-credential-monitor (OIDC)
 ├── backend.tf                       remote state (partial config, no names committed)
 ├── bootstrap/                       one-time config that creates the state storage
 ├── docs/                            bootstrap explanation, drift-detection output

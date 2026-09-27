@@ -93,3 +93,20 @@ variable "admin_object_id" {
   type        = string
   default     = null
 }
+
+# --- credmon-reader (credmon.tf) ---------------------------------------------
+
+variable "credmon_graph_app_roles" {
+  description = "Microsoft Graph application permissions for the credential monitor. Both read-only."
+  type        = list(string)
+  default = [
+    "Application.Read.All", # list apps and service principals with credential metadata
+    "User.ReadBasic.All",   # resolve owner display names in reports and issues
+  ]
+}
+
+variable "credmon_github_oidc_subject" {
+  description = "Full OIDC `sub` claim GitHub issues for the monitor workflow: its repo's subject prefix plus `:environment:monitor`."
+  type        = string
+  default     = "repo:pobrienDev@24906399/entra-credential-monitor@1387972681:environment:monitor"
+}
