@@ -29,3 +29,8 @@ output "ci_client_id" {
   description = "Client ID for the GitHub Actions identity (set as the AZURE_CLIENT_ID secret)."
   value       = azuread_application.ci.client_id
 }
+
+output "credmon_client_id" {
+  description = "Client ID for the credential monitor's GitHub Actions identity (its AZURE_CLIENT_ID repository variable)."
+  value       = azuread_application.credmon.client_id
+}
