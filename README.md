@@ -29,32 +29,42 @@ Scope is fixed at five things, deliberately:
 4. **Key Vault** (RBAC mode) holding the app's client secret, which rotates every 180 days — `keyvault.tf`
 5. **Remote state** in a locked-down Azure Storage account, created by a separate bootstrap config — `bootstrap/`, `backend.tf`
 
-Plus the CI identity that plans all of the above on every pull request, with
-no stored credentials — `github.tf`, `.github/workflows/plan.yml`.
+### GitHub Actions identities
 
-And one identity for a sibling project: `credmon-reader`, the read-only app
-that [entra-credential-monitor](https://github.com/pobrienDev/entra-credential-monitor)
-uses to scan the tenant daily for expiring secrets and certificates. It has two
-read-only Graph permissions, a federated credential scoped to that repo's
-`monitor` environment, and no client secret — `github.tf`. It was built in the
-portal first and then imported, so its client ID never changed.
+`github.tf` is one table of every identity a GitHub Actions workflow
+authenticates as: display name, which repo is trusted, which workflow contexts
+(pull request, `main`, a named environment), which Graph permissions, which
+Azure roles. One set of `for_each` resources turns each row into an app
+registration, service principal, federated credentials, admin-consent grants
+and role assignments. Adding an identity is adding a row. None of them has a
+client secret: GitHub mints a short-lived OIDC token per run and Entra ID
+trusts it directly.
 
-And two for [entra-conditional-access](https://github.com/pobrienDev/entra-conditional-access),
-which manages the tenant's Conditional Access policies as code: `ca-plan`
-(read-only, trusted from pull requests and `main` for daily drift checks) and
-`ca-apply` (holds `Policy.ReadWrite.ConditionalAccess`, trusted only from that
-repo's approval-gated `production` environment). Splitting them means the one
-permission that can rewrite the tenant's front door is unreachable without a
-human approving the deployment — `github.tf`.
+| Identity | Used by | Trusted from | Can |
+|---|---|---|---|
+| `ci` | this repo's `plan.yml` | pull requests, `main` | read Entra apps, the resource group, Key Vault secrets and the state blob — plan, never apply |
+| `credmon` | [entra-credential-monitor](https://github.com/pobrienDev/entra-credential-monitor), a daily scan for expiring secrets and certificates | that repo's `monitor` environment | read app credential metadata and owner names |
+| `ca-plan` | [entra-conditional-access](https://github.com/pobrienDev/entra-conditional-access), Conditional Access policies as code | pull requests, `main` (daily drift check) | read CA policies and the state blob |
+| `ca-apply` | same | only that repo's approval-gated `production` environment | write CA policies and the state blob |
+
+Two of those rows carry a decision worth stating. `credmon` was built in the
+portal first and imported, so its client ID never changed. `ca-plan` and
+`ca-apply` are split because app-only identities are not subject to
+Conditional Access: one that can write policies could rewrite the tenant's
+front door, so that permission is unreachable without a human approving a
+deployment.
 
 ```
 .
-├── main.tf, entra.tf, keyvault.tf   the five resources
-├── github.tf                        OIDC identities for GitHub Actions: this repo's plan job and two sibling repos
+├── main.tf                          resource group
+├── entra.tf                         automation app registration, service principal, admin consent
+├── keyvault.tf                      Key Vault and the rotating client secret
+├── github.tf                        the GitHub Actions identity table and its resources
 ├── backend.tf                       remote state (partial config, no names committed)
+├── variables.tf, outputs.tf         nine inputs; client IDs and names out, never the secret
 ├── bootstrap/                       one-time config that creates the state storage
 ├── docs/                            bootstrap explanation, drift-detection output
-├── .github/workflows/plan.yml       terraform plan on every PR
+├── .github/workflows/plan.yml       terraform plan on every PR, output redacted
 └── .githooks/pre-commit             blocks IDs, secrets and state from being committed
 ```
 
@@ -138,9 +148,9 @@ closing the gap — touching only the one resource that drifted.
 ## CI: `terraform plan` on every PR, with no stored secret
 
 The workflow authenticates with **OIDC workload identity federation**. GitHub
-mints a short-lived token for each run; a federated credential on a dedicated
-CI app registration tells Entra ID to trust tokens from this repository. There
-is no client secret to store, rotate or leak.
+mints a short-lived token for each run; federated credentials on the `ci` row
+of `github.tf` tell Entra ID to trust tokens from this repository. There is no
+client secret to store, rotate or leak.
 
 The CI identity is read-only by construction: `Application.Read.All` on Graph,
 `Reader` on the workload resource group and state storage account, and
