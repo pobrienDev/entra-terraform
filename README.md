@@ -30,13 +30,13 @@ Scope is fixed at five things, deliberately:
 5. **Remote state** in a locked-down Azure Storage account, created by a separate bootstrap config — `bootstrap/`, `backend.tf`
 
 Plus the CI identity that plans all of the above on every pull request, with
-no stored credentials — `ci.tf`, `.github/workflows/plan.yml`.
+no stored credentials — `github.tf`, `.github/workflows/plan.yml`.
 
 And one identity for a sibling project: `credmon-reader`, the read-only app
 that [entra-credential-monitor](https://github.com/pobrienDev/entra-credential-monitor)
 uses to scan the tenant daily for expiring secrets and certificates. It has two
 read-only Graph permissions, a federated credential scoped to that repo's
-`monitor` environment, and no client secret — `credmon.tf`. It was built in the
+`monitor` environment, and no client secret — `github.tf`. It was built in the
 portal first and then imported, so its client ID never changed.
 
 And two for [entra-conditional-access](https://github.com/pobrienDev/entra-conditional-access),
@@ -45,14 +45,12 @@ which manages the tenant's Conditional Access policies as code: `ca-plan`
 `ca-apply` (holds `Policy.ReadWrite.ConditionalAccess`, trusted only from that
 repo's approval-gated `production` environment). Splitting them means the one
 permission that can rewrite the tenant's front door is unreachable without a
-human approving the deployment — `ca.tf`.
+human approving the deployment — `github.tf`.
 
 ```
 .
 ├── main.tf, entra.tf, keyvault.tf   the five resources
-├── ci.tf                            read-only identity for GitHub Actions (OIDC)
-├── credmon.tf                       read-only identity for entra-credential-monitor (OIDC)
-├── ca.tf                            plan (read) and apply (write) identities for entra-conditional-access (OIDC)
+├── github.tf                        OIDC identities for GitHub Actions: this repo's plan job and two sibling repos
 ├── backend.tf                       remote state (partial config, no names committed)
 ├── bootstrap/                       one-time config that creates the state storage
 ├── docs/                            bootstrap explanation, drift-detection output
@@ -265,9 +263,9 @@ admin consent.
    terraform apply
    ```
 
-For CI, set the `github_oidc_subject_prefix` variable to your repo's value
-(`gh api repos/OWNER/REPO/actions/oidc/customization/sub --jq .sub_claim_prefix`)
-and add these Actions secrets: `AZURE_CLIENT_ID` (the `ci_client_id` output),
+For CI, put your repo's immutable OIDC subject in the `ci` entry of
+`github.tf` (`gh api repos/OWNER/REPO/actions/oidc/customization/sub --jq .sub_claim_prefix`)
+and add these Actions secrets: `AZURE_CLIENT_ID` (the `github_client_ids.ci` output),
 `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `TFSTATE_STORAGE_ACCOUNT`,
 `ADMIN_OBJECT_ID`, and `TENANT_NAME` (masked from logs).
 

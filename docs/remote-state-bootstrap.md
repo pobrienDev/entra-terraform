@@ -45,8 +45,8 @@ Two root modules, each with its own state:
 | State contains secrets | no | yes |
 
 `bootstrap/` keeping local state is a deliberate trade-off, not an oversight:
-it holds four resources and no secrets, it almost never changes, and if its
-state is lost the resources can be re-imported in four commands. Pushing the
+it holds five resources and no secrets, it almost never changes, and if its
+state is lost the resources can be re-imported. Pushing the
 problem down one more level would just need a bootstrap for the bootstrap.
 
 The state storage sits in its **own resource group** so that

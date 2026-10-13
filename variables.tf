@@ -21,6 +21,17 @@ variable "subscription_id" {
   }
 }
 
+variable "state_storage_account_name" {
+  description = "Storage account created by ./bootstrap. Not committed; set in terraform.tfvars."
+  type        = string
+}
+
+variable "admin_object_id" {
+  description = "Object ID of the admin who owns the app registrations and can manage the Key Vault secret. Null means whoever runs Terraform; CI must set it."
+  type        = string
+  default     = null
+}
+
 variable "location" {
   description = "Azure region for all resources."
   type        = string
@@ -50,96 +61,8 @@ variable "enable_credential_reset" {
   default     = false
 }
 
-variable "credential_reset_app_roles" {
-  description = "Granted only when enable_credential_reset is true."
-  type        = list(string)
-  default = [
-    "User-PasswordProfile.ReadWrite.All",
-    "UserAuthenticationMethod.ReadWrite.All",
-  ]
-}
-
 variable "client_secret_rotation_days" {
   description = "Lifetime of the app's client secret. After this, the next apply rotates it."
   type        = number
   default     = 180
-}
-
-variable "github_repository" {
-  description = "owner/name of the GitHub repository allowed to run plan via OIDC."
-  type        = string
-  default     = "pobrienDev/entra-terraform"
-}
-
-variable "github_oidc_subject_prefix" {
-  description = "Prefix of the OIDC `sub` claim GitHub issues for this repo. Read it with: gh api repos/OWNER/REPO/actions/oidc/customization/sub --jq .sub_claim_prefix"
-  type        = string
-  default     = "repo:pobrienDev@24906399/entra-terraform@1376480422"
-}
-
-variable "state_storage_account_name" {
-  description = "Storage account created by ./bootstrap. Not committed — set in terraform.tfvars."
-  type        = string
-}
-
-variable "state_resource_group_name" {
-  description = "Resource group created by ./bootstrap."
-  type        = string
-  default     = "rg-entra-iac-tfstate"
-}
-
-variable "admin_object_id" {
-  description = "Object ID of the admin user who owns the app registrations and gets Key Vault secret access. Null means the identity running Terraform; CI must set it."
-  type        = string
-  default     = null
-}
-
-# --- credmon-reader (credmon.tf) ---------------------------------------------
-
-variable "credmon_graph_app_roles" {
-  description = "Microsoft Graph application permissions for the credential monitor. Both read-only."
-  type        = list(string)
-  default = [
-    "Application.Read.All", # list apps and service principals with credential metadata
-    "User.ReadBasic.All",   # resolve owner display names in reports and issues
-  ]
-}
-
-variable "credmon_github_oidc_subject" {
-  description = "Full OIDC `sub` claim GitHub issues for the monitor workflow: its repo's subject prefix plus `:environment:monitor`."
-  type        = string
-  default     = "repo:pobrienDev@24906399/entra-credential-monitor@1387972681:environment:monitor"
-}
-
-# --- ca-plan / ca-apply (ca.tf) ----------------------------------------------
-
-variable "ca_github_repository" {
-  description = "owner/name of the Conditional Access repository allowed to authenticate as ca-plan and ca-apply."
-  type        = string
-  default     = "pobrienDev/entra-conditional-access"
-}
-
-variable "ca_github_oidc_subject_prefix" {
-  description = "Prefix of the OIDC `sub` claim GitHub issues for the CA repo. Read it with: gh api repos/OWNER/REPO/actions/oidc/customization/sub --jq .sub_claim_prefix"
-  type        = string
-  default     = "repo:pobrienDev@24906399/entra-conditional-access@1391370842"
-}
-
-variable "ca_plan_graph_app_roles" {
-  description = "Microsoft Graph application permissions for ca-plan. All read-only."
-  type        = list(string)
-  default = [
-    "Policy.Read.All", # read Conditional Access policies and named locations
-    "Group.Read.All",  # resolve the break-glass group data source, including its members
-  ]
-}
-
-variable "ca_apply_graph_app_roles" {
-  description = "Microsoft Graph application permissions for ca-apply. Adds the one write permission."
-  type        = list(string)
-  default = [
-    "Policy.Read.All",
-    "Policy.ReadWrite.ConditionalAccess", # create and update policies and named locations
-    "Group.Read.All",
-  ]
 }

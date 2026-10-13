@@ -19,9 +19,12 @@ locals {
   # plan would propose making itself the owner of everything.
   admin_object_id = coalesce(var.admin_object_id, data.azuread_client_config.current.object_id)
 
+  # Granted only when enable_credential_reset is true.
+  credential_reset_app_roles = ["User-PasswordProfile.ReadWrite.All", "UserAuthenticationMethod.ReadWrite.All"]
+
   graph_app_roles = toset(concat(
     var.graph_app_roles,
-    var.enable_credential_reset ? var.credential_reset_app_roles : [],
+    var.enable_credential_reset ? local.credential_reset_app_roles : [],
   ))
 }
 
