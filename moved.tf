@@ -102,7 +102,7 @@ moved {
 }
 moved {
   from = azurerm_role_assignment.ci_kv_secrets_user
-  to   = azurerm_role_assignment.github["ci/kv-secrets"]
+  to   = azurerm_role_assignment.github["ci/secrets-user"]
 }
 moved {
   from = azurerm_role_assignment.ci_state_reader

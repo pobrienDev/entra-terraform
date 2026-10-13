@@ -31,7 +31,7 @@ locals {
         rg-reader = { role = "Reader", scope = azurerm_resource_group.main.id }
         # Refreshing the Key Vault secret reads it. CI can already read state,
         # which holds the same value; the control is who can obtain a token.
-        kv-secrets = { role = "Key Vault Secrets User", scope = azurerm_key_vault.main.id }
+        secrets-user = { role = "Key Vault Secrets User", scope = azurerm_key_vault.main.id }
         # Reader, not Contributor: it plans with -lock=false, so never needs a lease.
         state-read = { role = "Storage Blob Data Reader", scope = local.tfstate_container_id }
         # Management-plane read so the storage account data source resolves.
