@@ -5,8 +5,6 @@
 # in Terraform state. Key Vault keeps it out of code and config; keeping it
 # safe in state is the job of the locked-down remote backend (see backend.tf).
 
-data "azurerm_client_config" "current" {}
-
 # Vault names are global DNS names (<name>.vault.azure.net), 3-24 chars.
 resource "random_string" "kv_suffix" {
   length  = 6

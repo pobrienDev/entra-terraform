@@ -19,7 +19,6 @@ concurrency:
 
 env:
   ARM_USE_OIDC: "true"
-  ARM_USE_AZUREAD: "true"
   ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
   ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
   ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -66,7 +65,6 @@ jobs:
       # and only a redacted copy is ever printed. GitHub also masks the secret
       # values above, including TENANT_NAME, as a second layer.
       - name: Plan
-        id: plan
         env:
           TENANT_NAME: ${{ secrets.TENANT_NAME }}
         run: |
@@ -92,7 +90,6 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-          echo "exitcode=$code" >> "$GITHUB_OUTPUT"
           # 0 = no changes, 2 = changes pending. Only 1 is a real failure.
           [ "$code" -ne 1 ]
 

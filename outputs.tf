@@ -25,22 +25,7 @@ output "client_secret_expires" {
   value = time_rotating.client_secret.rotation_rfc3339
 }
 
-output "ci_client_id" {
-  description = "Client ID for the GitHub Actions identity (set as the AZURE_CLIENT_ID secret)."
-  value       = azuread_application.ci.client_id
-}
-
-output "credmon_client_id" {
-  description = "Client ID for the credential monitor's GitHub Actions identity (its AZURE_CLIENT_ID repository variable)."
-  value       = azuread_application.credmon.client_id
-}
-
-output "ca_plan_client_id" {
-  description = "Client ID for entra-conditional-access's read-only plan/drift identity (its CA_PLAN_CLIENT_ID secret)."
-  value       = azuread_application.ca["plan"].client_id
-}
-
-output "ca_apply_client_id" {
-  description = "Client ID for entra-conditional-access's apply identity (its CA_APPLY_CLIENT_ID secret, used only in the production environment)."
-  value       = azuread_application.ca["apply"].client_id
+output "github_client_ids" {
+  description = "Client IDs of the GitHub Actions identities. ci: this repo's AZURE_CLIENT_ID secret. credmon: entra-credential-monitor's AZURE_CLIENT_ID variable. ca-plan / ca-apply: entra-conditional-access's CA_PLAN_CLIENT_ID / CA_APPLY_CLIENT_ID secrets."
+  value       = { for key, app in azuread_application.github : key => app.client_id }
 }

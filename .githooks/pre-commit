@@ -27,11 +27,7 @@ added=$(git diff --cached -U0 --diff-filter=ACMR -- . ':!.githooks/pre-commit' |
 
 # 2. Real GUIDs (tenant, subscription, client, object IDs). All-zero placeholder is allowed.
 guids=$(echo "$added" | grep -oiE '[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}' | grep -v '^00000000-0000-0000-0000-000000000000$' || true)
-# Well-known public IDs (Microsoft Graph app + its permission IDs) go in .githooks/guid-allowlist
-if [ -n "$guids" ] && [ -f .githooks/guid-allowlist ]; then
-  guids=$(echo "$guids" | grep -viFf <(grep -v '^#' .githooks/guid-allowlist | awk '{print $1}' | grep .) || true)
-fi
-[ -n "$guids" ] && report "GUID(s) in staged changes — use a variable, or allowlist if public: $(echo $guids)"
+[ -n "$guids" ] && report "GUID(s) in staged changes — use a variable or a data-source lookup: $(echo $guids)"
 
 # 3. Secret-shaped strings
 echo "$added" | grep -qE -- '-----BEGIN [A-Z ]*PRIVATE KEY-----' && report "private key material"
