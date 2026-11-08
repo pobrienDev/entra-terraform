@@ -65,6 +65,7 @@ deployment.
 ├── bootstrap/                       one-time config that creates the state storage
 ├── docs/                            bootstrap explanation, drift-detection output
 ├── .github/workflows/plan.yml       terraform plan on every PR, output redacted
+├── .github/scripts/redact.sh        the redaction, with its own tests (redact_test.sh)
 └── .githooks/pre-commit             blocks IDs, secrets and state from being committed
 ```
 
@@ -163,8 +164,12 @@ so it never needs write access to take a lease. It can plan; it cannot apply.
 
 Because this repository is public, so are its logs. Raw plan output contains
 tenant, subscription and object IDs, so the workflow writes it to a file, and
-only a redacted copy is ever printed or posted to the PR. GitHub's secret
-masking is the second layer.
+only a redacted copy is ever printed or posted to the PR. The redaction is a
+small script with its own tests, one per identifier class, and the plan job
+does not start unless they pass: when a pattern gap turned up (app role
+assignment IDs, which encode the principal's object ID in base64url and so
+slip past a GUID pattern), the fix was a test case and a rule, not a note to
+remember. GitHub's secret masking is the second layer.
 
 One honest limitation: refreshing `azurerm_key_vault_secret` reads the secret,
 so the CI identity holds `Key Vault Secrets User`. It can already read state,
