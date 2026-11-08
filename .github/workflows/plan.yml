@@ -61,7 +61,9 @@ jobs:
         run: terraform validate
 
       # This repository is public, so its logs are too. Raw plan output holds
-      # tenant, subscription and object IDs; it goes to a file, never stdout,
+      # tenant, subscription and object IDs (app role assignment IDs are the
+      # principal's object ID plus a GUID, base64url-encoded, so they are masked
+      # too); it goes to a file, never stdout,
       # and only a redacted copy is ever printed. GitHub also masks the secret
       # values above, including TENANT_NAME, as a second layer.
       - name: Plan
@@ -78,6 +80,7 @@ jobs:
               -e 's/[A-Za-z0-9-]+\.onmicrosoft\.com/<tenant-domain>/g' \
               -e 's/kv-[a-z0-9-]+/<key-vault>/g' \
               -e 's/sttfstate[a-z0-9]+/<state-storage>/g' \
+              -e 's#appRoleAssignedTo/[A-Za-z0-9_-]+#appRoleAssignedTo/<assignment-id>#g' \
               -e 's#https://[A-Za-z0-9./_-]+#<url>#g' \
             > plan.txt
           rm -f plan.raw
