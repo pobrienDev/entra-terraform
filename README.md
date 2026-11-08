@@ -72,8 +72,12 @@ deployment.
 
 **Permissions come from the code that uses them.** The Graph permissions aren't
 a guess: I read both tools' Graph calls and granted what they need —
-`User.ReadWrite.All`, `Group.ReadWrite.All`, `AuditLog.Read.All`,
-`Organization.Read.All`. The two permissions that let an app reset passwords
+`User.ReadWrite.All`, `GroupMember.ReadWrite.All`, `User.RevokeSessions.All`,
+`AuditLog.Read.All`, `Organization.Read.All`. The group permission is the
+member-level one, not `Group.ReadWrite.All`: the tools add and remove members
+and never create or reconfigure a group. The first apply (below) granted the
+broader one; this list matches what the provisioning tool documents and what
+its registration now holds. The two permissions that let an app reset passwords
 and remove MFA methods are behind `enable_credential_reset`, **off by
 default**. A leaked secret with those can take over any account in the tenant,
 so they should be a decision, not a default.
