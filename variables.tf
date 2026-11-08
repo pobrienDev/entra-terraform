@@ -48,10 +48,11 @@ variable "graph_app_roles" {
   description = "Microsoft Graph application permissions the automation needs for its core job."
   type        = list(string)
   default = [
-    "User.ReadWrite.All",    # create / update / disable accounts
-    "Group.ReadWrite.All",   # group membership
-    "AuditLog.Read.All",     # signInActivity, for stale-account detection
-    "Organization.Read.All", # subscribedSkus, for license seat counts
+    "User.ReadWrite.All",        # create / update / disable accounts, assign licenses
+    "GroupMember.ReadWrite.All", # add / remove group members; narrower than Group.ReadWrite.All
+    "User.RevokeSessions.All",   # revokeSignInSessions on offboarding
+    "AuditLog.Read.All",         # signInActivity, for stale-account detection
+    "Organization.Read.All",     # subscribedSkus, for license seat counts
   ]
 }
 
