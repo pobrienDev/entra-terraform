@@ -1,5 +1,7 @@
-# Key Vault holding the app registration's client secret, so the automation
-# tools fetch it at runtime instead of keeping it in a .env file.
+# Key Vault holding the app registration's client secret. Terraform generates
+# and stores it here, so no human ever types or commits it; operators retrieve
+# it from the vault instead of the portal. The tools themselves still read it
+# from a gitignored .env file.
 #
 # Honest caveat: Terraform generates the secret, so its value is also recorded
 # in Terraform state. Key Vault keeps it out of code and config; keeping it

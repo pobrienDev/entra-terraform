@@ -291,5 +291,6 @@ To tear down: `terraform destroy` in the root, then in `bootstrap/`.
   reviewers, rather than applying from a laptop.
 - Split state per environment once there's more than one.
 
-Scope stayed at five resources on purpose. The goal was something finished and
-explainable end to end, not something sprawling.
+Scope started at five resources on purpose: something finished and explainable
+end to end before it grew. It has since grown into the identity layer for two
+sibling repositories, one resource table at a time.
